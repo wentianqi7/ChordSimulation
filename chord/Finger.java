@@ -8,6 +8,11 @@ public class Finger {
 		this.successor = successor;
 	}
 	
+	
+	/*
+	 * getters and setters
+	 */
+	
 	public void setStart(HashKey start) {
 		this.start = start;
 	}

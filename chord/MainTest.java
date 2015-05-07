@@ -69,6 +69,7 @@ public class MainTest {
 
 				// dealing with command
 				if (input[0].equalsIgnoreCase("exit")) {
+					// exit the program
 					System.out.println("Bye.");
 					System.exit(0);
 				} else if (input[0].equalsIgnoreCase("dump")) {

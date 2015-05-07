@@ -2,7 +2,8 @@ import java.util.*;
 
 public class ChordRing {
 	public final boolean SIMPLE;
-	List<ChordNode> nodeList = new ArrayList<ChordNode>();
+	// used for initialize the chord ring, no longer used in the later steps
+	List<ChordNode> initList = new ArrayList<ChordNode>();
 	PriorityQueue<String> nodeHeap = new PriorityQueue<String>(); 
 	Map<String, ChordNode> nodeMap = new HashMap<String, ChordNode>();
 	
@@ -10,32 +11,15 @@ public class ChordRing {
 		this.SIMPLE = simple;
 	}
 	
-	public void addNode(ChordNode node) {
-		if (nodeMap.containsKey(node.getHashKey().toHex())) {
-			System.err.println("Duplicated hash key...");
-		} else {
-			nodeHeap.add(node.getHashKey().toHex());
-			nodeList.add(node);
-			nodeMap.put(node.getHashKey().toHex(), node);
-		}
-	}
-	
-	public void initRing() {
-		Collections.sort(nodeList, new NodeComparator());
-		for (int i = 0; i < nodeList.size(); i++) {
-			int pre = (i == 0) ? nodeList.size()-1 : i - 1;
-			int suc = (i + 1) % nodeList.size();
-			int suc2 = (i + 2) % nodeList.size();
-			nodeList.get(i).setPredecessor(nodeList.get(pre));
-			nodeList.get(i).setSuccessor(nodeList.get(suc));
-			nodeList.get(i).setSecondSuccessor(nodeList.get(suc2));
-		}
-	}
-	
 	public int getCurNodeNum() {
 		return nodeHeap.size();
 	}
 	
+	/**
+	 * print all the information of the chord ring
+	 * @param verbose
+	 * 		whether print node identifier for each node
+	 */
 	public void printAllNode(boolean verbose) {
 		ChordNode start = this.getRingStart(), cur = start;
 		StringBuilder sb = new StringBuilder();
@@ -60,6 +44,12 @@ public class ChordRing {
 		System.out.println(sb.toString());
 	}
 	
+	/**
+	 * get the node wrt hash key
+	 * used for testing and print (no practical usage)
+	 * @param hash
+	 * @return the node with hashKey equals to hash
+	 */
 	public ChordNode getNode(byte[] hash) {
 		String hex = Hash.hashToHex(hash);
 		if (nodeMap.containsKey(hex)) {
@@ -70,6 +60,11 @@ public class ChordRing {
 		}
 	}
 	
+	/**
+	 * find the smallest hash value in the ring
+	 * used for iteration and print result (no practical usage)
+	 * @return the node with smallest hash value in the chord ring
+	 */
 	public ChordNode getRingStart() {
 		return nodeMap.get(nodeHeap.peek());
 	}
@@ -95,6 +90,37 @@ public class ChordRing {
 		node.fail();
 		nodeMap.remove(node.getHashKey().toHex());
 		nodeHeap.remove(node.getHashKey().toHex());
+	}
+	
+	/**
+	 * Add a node to the init list, used in initialization step only
+	 * use join instead in running time instead
+	 * @param node
+	 */
+	public void addNode(ChordNode node) {
+		if (nodeMap.containsKey(node.getHashKey().toHex())) {
+			System.err.println("Duplicated hash key...");
+		} else {
+			nodeHeap.add(node.getHashKey().toHex());
+			initList.add(node);
+			nodeMap.put(node.getHashKey().toHex(), node);
+		}
+	}
+	
+	/**
+	 * initialize the chord ring
+	 * used join in running time instead
+	 */
+	public void initRing() {
+		Collections.sort(initList, new NodeComparator());
+		for (int i = 0; i < initList.size(); i++) {
+			int pre = (i == 0) ? initList.size()-1 : i - 1;
+			int suc = (i + 1) % initList.size();
+			int suc2 = (i + 2) % initList.size();
+			initList.get(i).setPredecessor(initList.get(pre));
+			initList.get(i).setSuccessor(initList.get(suc));
+			initList.get(i).setSecondSuccessor(initList.get(suc2));
+		}
 	}
 }
 

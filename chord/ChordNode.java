@@ -1,4 +1,3 @@
-import java.util.*;
 
 public class ChordNode {
 	private String nid;
@@ -51,6 +50,10 @@ public class ChordNode {
 		}
 	}
 	
+	/**
+	 * @param hashKey
+	 * @return the result of searching finger table 
+	 */
 	public ChordNode getFinger (HashKey hashKey){
 		return this.fingerTable.search(hashKey).successor;
 	}
@@ -111,6 +114,10 @@ public class ChordNode {
 		fingerTable.printAll();
 	}
 	
+	/*
+	 * getters and setters
+	 */
+	
 	public void setSuccessor(ChordNode successor) {
 		this.successor = successor;
 	}
@@ -143,6 +150,9 @@ public class ChordNode {
 		this.secondSuccessor = secondSuccessor;
 	}
 	
+	/**
+	 * set the current node to fail
+	 */
 	public void fail() {
 		this.successor = null;
 		this.secondSuccessor = null;
