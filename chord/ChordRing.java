@@ -24,29 +24,28 @@ public class ChordRing {
 		Collections.sort(nodeList, new NodeComparator());
 		for (int i = 0; i < nodeList.size(); i++) {
 			int pre = (i == 0) ? nodeList.size()-1 : i - 1;
-			int suc = (i == nodeList.size()-1) ? 0 : i + 1;
+			int suc = (i + 1) % nodeList.size();
+			int suc2 = (i + 2) % nodeList.size();
 			nodeList.get(i).setPredecessor(nodeList.get(pre));
 			nodeList.get(i).setSuccessor(nodeList.get(suc));
+			nodeList.get(i).setSecondSuccessor(nodeList.get(suc2));
 		}
-	}
-	
-	public ChordNode successor(String id) {
-		HashKey hashKey = new HashKey(id);
-		
-		return new ChordNode(id);
 	}
 	
 	public int getCurNodeNum() {
 		return nodeHeap.size();
 	}
 	
-	public void printAllNode() {
+	public void printAllNode(boolean verbose) {
 		ChordNode start = this.getRingStart(), cur = start;
 		StringBuilder sb = new StringBuilder();
 		do {
 			sb.append(cur.getHashKey().toHex());
+			sb.append("(" + cur.getSecondSuccessor().getHashKey().toHex() + ")");
 			sb.append("==>");
-			cur.printInfo();
+			if (verbose) {
+				cur.printInfo();
+			}
 			cur.fixFingers();
 			cur = cur.getSuccessor();
 		} while (cur != start);
@@ -81,7 +80,9 @@ public class ChordRing {
 	 */
 	public void join(ChordNode newNode) {
 		newNode.setPredecessor(null);
-		newNode.setSuccessor(nodeMap.get(nodeHeap.peek()).lookup(newNode.getHashKey(), this.SIMPLE, true));
+		ChordNode successor = nodeMap.get(nodeHeap.peek()).lookup(newNode.getHashKey(), this.SIMPLE, false);
+		newNode.setSuccessor(successor);
+		newNode.setSecondSuccessor(successor.getSuccessor());
 		nodeHeap.add(newNode.getHashKey().toHex());
 		nodeMap.put(newNode.getHashKey().toHex(), newNode);
 	}
@@ -91,8 +92,7 @@ public class ChordRing {
 	 * @param newNode
 	 */
 	public void leave(ChordNode node) {
-		node.setSuccessor(null);
-		node.setPredecessor(null);
+		node.fail();
 		nodeMap.remove(node.getHashKey().toHex());
 		nodeHeap.remove(node.getHashKey().toHex());
 	}

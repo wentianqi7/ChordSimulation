@@ -4,7 +4,7 @@ import java.util.Formatter;
 
 public class Hash {
 	private static final int BYTE_LENGTH = 8;
-	private static int hash_length = 8;
+	private static int hash_length = 16;
 	private static int bnum = 4;
 
 	public static void setLengthInByte(int node_num) {

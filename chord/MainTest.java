@@ -11,13 +11,11 @@ public class MainTest {
 		String host = InetAddress.getLocalHost().getHostAddress();
 		int port = 9000;
 		String buffer = "";
-		// whether use simple key location or scalable key location
-		final boolean SIMPLE = false;
 
 		/* Parse parameter and do args checking */
-		if (args.length < 2) {
+		if (args.length < 3) {
 			System.err
-					.println("Usage: java MainTest <max_mode_num> <init_node_num>");
+					.println("Usage: java MainTest <max_mode_num> <init_node_num> <lookup_mode>");
 			System.exit(1);
 		}
 
@@ -38,8 +36,21 @@ public class MainTest {
 		System.out.println("Initial node number: " + init_node_num);
 		Hash.setLengthInByte(max_node_num);
 
+		// whether use simple key location or scalable key location
+		boolean isSimple = false;
+		if (args[2].equalsIgnoreCase("simple")) {
+			isSimple = true;
+		} else if (args[2].equalsIgnoreCase("scalable")) {
+			isSimple = false;
+		} else {
+			System.err
+				.println("Usage: java MainTest <max_mode_num> <init_node_num> <lookup_mode>");
+			System.err.println("<lookup_mode> should be [\"simple\", \"scalable\"]");
+			System.exit(1);
+		}
+		
 		// init chord ring
-		ChordRing chdring = new ChordRing(SIMPLE);
+		ChordRing chdring = new ChordRing(isSimple);
 
 		for (int i = 0; i < init_node_num; i++) {
 			URL url = new URL("http", host, port + i, "");
@@ -48,7 +59,7 @@ public class MainTest {
 		}
 		chdring.initRing();
 		System.out.println(chdring.getCurNodeNum() + " nodes are created.");
-		chdring.printAllNode();
+		chdring.printAllNode(true);
 
 		// waiting for testing command
 		while (true) {
@@ -63,7 +74,7 @@ public class MainTest {
 				} else if (input[0].equalsIgnoreCase("dump")) {
 					// print all information
 					System.out.println("Printing all information...");
-					chdring.printAllNode();
+					chdring.printAllNode(true);
 				} else if (input.length == 2) {
 					String id = input[1];
 					if (input[0].equalsIgnoreCase("fingertable")
@@ -71,46 +82,43 @@ public class MainTest {
 						// print finger table of node(id)
 						System.out.println("Printing finger table of N" + id
 								+ "...");
-						chdring.getNode(Hash.computeHash(id)).printFingerTable();
+						chdring.getNode(Hash.computeHash(id))
+								.printFingerTable();
 
-					} else if (input[0].equalsIgnoreCase("keys")) {
-						// print keys mapped to node(id)
-						System.out.println("Printing keys mapped to N" + id
-								+ "...");
-						System.out
-								.println(Hash.hashToHex(Hash.computeHash(id)));
 					} else if (input[0].equalsIgnoreCase("join")) {
 						// new node join the system
-						ChordNode newNode = new ChordNode(id);
+						ChordNode newNode = new ChordNode(id), cur = newNode;
 						chdring.join(newNode);
-						ChordNode oldPre = newNode.getSuccessor().getPredecessor();
-						newNode.stabilize();
-						if (oldPre == null) {
-							newNode.getSuccessor().stabilize();
-						} else {
-							oldPre.stabilize();
-						}
-						System.out.println("N" + Hash.hashToHex(Hash.computeHash(id)) + " joins...");
-						chdring.printAllNode();
+
+						do {
+							cur.stabilize();
+							cur = cur.getSuccessor();
+						} while (cur != newNode);
+
+						System.out.println("N"
+								+ Hash.hashToHex(Hash.computeHash(id))
+								+ " joins...");
+						chdring.printAllNode(false);
 					} else if (input[0].equalsIgnoreCase("leave")) {
 						// existing node leave the system
-						if (SIMPLE) {
-							System.err.println("Lose all the information about the node...");
-							System.err.println("Try using replication or fingertable mode...");
-							continue;
-						}
-						ChordNode toDelete = chdring.getNode(Hash.computeHash(id));
+
+						ChordNode toDelete = chdring.getNode(Hash
+								.computeHash(id));
 						if (toDelete == null) {
 							System.out.println("Node does not exist...");
 						} else {
 							chdring.leave(toDelete);
 							ChordNode start = chdring.getRingStart(), cur = start;
 							do {
+								if (!cur.getSuccessor().checkValid()) {
+									cur.setSuccessor(cur.getSecondSuccessor());
+								}
 								cur.stabilize();
 								cur = cur.getSuccessor();
 							} while (cur != start);
-							
+
 							System.out.println("N" + id + " leaves...");
+							chdring.printAllNode(false);
 						}
 					}
 				} else if (input.length == 3
@@ -126,7 +134,7 @@ public class MainTest {
 					System.out.println("Lookup for Identifier: " + input[2]
 							+ ", Hash Key: " + Hash.hashToHex(destHash));
 
-					src.lookup(new HashKey(destHash), SIMPLE, true).printInfo();
+					src.lookup(new HashKey(destHash), isSimple, true).printInfo();
 				} else {
 					System.out.println("Command not found: " + buffer);
 				}

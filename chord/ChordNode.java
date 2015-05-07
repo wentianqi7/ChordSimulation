@@ -3,8 +3,9 @@ import java.util.*;
 public class ChordNode {
 	private String nid;
 	private HashKey hashKey;
-	private ChordNode predecessor, successor;
+	private ChordNode predecessor, successor, secondSuccessor;
 	private FingerTable fingerTable;
+	private boolean valid;
 
 	public ChordNode(String nid) {
 		this.nid = nid;
@@ -12,30 +13,7 @@ public class ChordNode {
 		this.predecessor = null;
 		this.successor = this;
 		this.fingerTable = new FingerTable(this);
-	}
-
-	public void setSuccessor(ChordNode successor) {
-		this.successor = successor;
-	}
-
-	public ChordNode getSuccessor() {
-		return this.successor;
-	}
-
-	public void setPredecessor(ChordNode predecessor) {
-		this.predecessor = predecessor;
-	}
-
-	public ChordNode getPredecessor() {
-		return this.predecessor;
-	}
-
-	public HashKey getHashKey() {
-		return this.hashKey;
-	}
-
-	public String getNodeId() {
-		return this.nid;
+		this.valid = true;
 	}
 
 	public void printInfo() {
@@ -82,14 +60,19 @@ public class ChordNode {
 	 * about n
 	 */
 	public void stabilize() {
-		ChordNode oldPre = this.successor.predecessor;
-		if (oldPre != null) {
-			HashKey hashKey = oldPre.hashKey;
+		ChordNode newAdd = this.successor.predecessor;
+		if (newAdd != null && newAdd.checkValid()) {
+			HashKey hashKey = newAdd.hashKey;
 			// if key of oldPre in interval (this, successor)
 			if (hashKey
 					.inCurInterval(this.hashKey, this.successor.hashKey)) {
-				this.successor = oldPre;
+				this.successor = newAdd;
+				this.secondSuccessor = newAdd.successor;
+				this.predecessor.secondSuccessor = this.successor;
 			}
+		} else if (!newAdd.checkValid()) {
+			this.secondSuccessor = this.successor.successor;
+			this.predecessor.secondSuccessor = this.successor;
 		}
 		this.successor.notify(this);
 	}
@@ -101,7 +84,7 @@ public class ChordNode {
 	 */
 	public void notify(ChordNode node) {
 		HashKey hashKey = node.getHashKey();
-		if (this.predecessor == null
+		if (this.predecessor == null || !this.predecessor.checkValid()
 				|| hashKey.inCurInterval(this.predecessor.hashKey,
 						this.hashKey)) {
 			this.predecessor = node;
@@ -117,14 +100,53 @@ public class ChordNode {
 	}
 
 	/**
-	 * called periodically. checks whether predecessor has failed
+	 * called periodically. checks whether the node has failed
 	 */
-	public void checkPredecessor() {
+	public boolean checkValid() {
 		// if predecessor failed
-		this.predecessor = null;
+		return this.valid;
 	}
 	
 	public void printFingerTable() {
 		fingerTable.printAll();
+	}
+	
+	public void setSuccessor(ChordNode successor) {
+		this.successor = successor;
+	}
+
+	public ChordNode getSuccessor() {
+		return this.successor;
+	}
+
+	public void setPredecessor(ChordNode predecessor) {
+		this.predecessor = predecessor;
+	}
+
+	public ChordNode getPredecessor() {
+		return this.predecessor;
+	}
+
+	public HashKey getHashKey() {
+		return this.hashKey;
+	}
+
+	public String getNodeId() {
+		return this.nid;
+	}
+	
+	public ChordNode getSecondSuccessor() {
+		return this.secondSuccessor;
+	}
+	
+	public void setSecondSuccessor(ChordNode secondSuccessor) {
+		this.secondSuccessor = secondSuccessor;
+	}
+	
+	public void fail() {
+		this.successor = null;
+		this.secondSuccessor = null;
+		this.predecessor = null;
+		this.valid = false;
 	}
 }
